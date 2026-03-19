@@ -18,6 +18,25 @@ const isWindows = process.platform === 'win32';
 const ASM_EXE    = path.join(BIN_DIR, isWindows ? 'asm.exe' : 'asm');
 const EMU_EXE    = path.join(BIN_DIR, isWindows ? 'emu.exe' : 'emu');
 
+// Auto-compile C++ binaries if missing (Fixes Replit deployment ENOENT errors)
+if (!isWindows) {
+  const { execSync } = require('child_process');
+  try {
+    if (!fs.existsSync(ASM_EXE)) {
+      console.log('Compiling assembler...');
+      execSync('g++ assembler.cpp -o asm', { cwd: BIN_DIR, stdio: 'inherit' });
+    }
+    if (!fs.existsSync(EMU_EXE)) {
+      console.log('Compiling emulator...');
+      execSync('g++ emulator.cpp -o emu', { cwd: BIN_DIR, stdio: 'inherit' });
+    }
+    // Also grant execution permissions just in case
+    execSync('chmod +x asm emu', { cwd: BIN_DIR });
+  } catch (err) {
+    console.error('Failed to compile C++ binaries:', err.message);
+  }
+}
+
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
