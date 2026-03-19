@@ -18,8 +18,6 @@ backend/temp.trace.json
 *.obj
 backend/asm.exe
 backend/emu.exe
-backend/asm
-backend/emu
 
 # Environment
 .env
