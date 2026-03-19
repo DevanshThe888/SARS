@@ -1,7 +1,7 @@
-FROM node:20-bookworm
+FROM node:20-alpine
 
-# Install C++ compiler explicitly
-RUN apt-get update && apt-get install -y g++ build-essential
+# Install C++ compiler explicitly using Alpine's incredibly fast (and reliable) package manager
+RUN apk update && apk add --no-cache g++ make
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
@@ -15,10 +15,10 @@ COPY . .
 
 # Compile the C++ assembler and emulator natively for Linux
 RUN g++ assembler.cpp -o asm
-RUN g++ emulator.cpp -o emu
+RUN g++ emulator.cpp -o emuwsl 
 
 # Ensure they have execution permissions
-RUN chmod +x asm emu
+RUN chmod +x asm emuwsl
 
 # Expose the port your server listens on
 EXPOSE 3001
