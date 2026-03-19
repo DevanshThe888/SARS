@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build and Temp files
+dist/
+dist-ssr/
+build/
+backend/temp.asm
+backend/temp.o
+backend/temp.lst
+backend/temp.trace.json
+
+# C/C++ Executables
+*.exe
+*.o
+*.obj
+backend/asm.exe
+backend/emu.exe
+backend/asm
+backend/emu
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and OS Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

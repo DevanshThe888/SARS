@@ -1,0 +1,14 @@
+{
+  "name": "simplex-ide-backend",
+  "version": "1.0.0",
+  "description": "Express bridge for SIMPLEX assembler and emulator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:replit": "g++ assembler.cpp -o asm && g++ emulator.cpp -o emu && node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
