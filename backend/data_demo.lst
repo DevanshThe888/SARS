@@ -1,0 +1,9 @@
+                  ; --- data_demo.asm ---
+00000000 00006400     ldc 100        ; Load 100 into accumulator
+00000001 00000500     ldc VAR_ADDR   ; Get the address of our data
+00000002 00000004     ldnl 0         ; Load the value AT that address (should be 42)
+00000003 00000006     add            ; 100 + 42 = 142
+00000004 00000012     HALT           ; Stop
+0000000  0000000  
+0000000  0000000  VAR_ADDR: SET 5        ; Alias for the address of our data
+00000005 0000002A my_storage: data 42    ; This is our variable at PC 5

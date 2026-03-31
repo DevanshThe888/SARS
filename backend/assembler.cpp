@@ -58,7 +58,7 @@ bool parseValue(const string& str, map<string, int>& symbol_table, int& out_val,
 int main(int argc, char* argv[]) {
     if (argc < 4) {
         cout << "Usage: " << argv[0] << " <input.asm> <output.o> <output.lst>\n";
-        return 1;
+        return 1; // something went wrong
     }
     
     string infile = argv[1];
@@ -67,6 +67,7 @@ int main(int argc, char* argv[]) {
     
     ifstream fin(infile);
     if (!fin) {
+        // use cerr(unbuffered) over cout(buffered)
         cerr << "Error: Cannot open input file " << infile << "\n";
         return 1;
     }
@@ -90,15 +91,18 @@ int main(int argc, char* argv[]) {
         
         // Remove comments
         string clean = raw_line;
-        size_t semi = clean.find(';');
+        size_t semi = clean.find(';'); // size_t is unsigned long long and used to store size of array, strings, etc
+        // if ';' is not found then it returns -1 ie '0xFFFF FFFF' to semi
+        // npos is actually -1 and of type size_t
         if (semi != string::npos) {
             clean = clean.substr(0, semi);
         }
         
-        // Trim whitespace
+        // Trim whitespace from front and end
         clean.erase(0, clean.find_first_not_of(" \t\r\n"));
         clean.erase(clean.find_last_not_of(" \t\r\n") + 1);
         
+        // line empty? Store empty line
         if (clean.empty()) {
             lines.push_back(sl);
             continue;
@@ -113,7 +117,7 @@ int main(int argc, char* argv[]) {
             label_str = remaining.substr(0, colon);
             stringstream ls(label_str);
             string lbl;
-            ls >> lbl;
+            ls >> lbl; // '>>' (extraction operator) - useful for removing leading and trailing whitespcase
             
             // Validation
             if (lbl.empty() || !isalpha(lbl[0])) {
@@ -232,7 +236,7 @@ int main(int argc, char* argv[]) {
             machine_code = (operand_val << 8) | (opcode & 0xFF);
         }
         
-        // Write listing
+        // Write listing (uses <iomanip>)
         fout_lst << hex << uppercase << setfill('0') << setw(8) << sl.pc << " " 
                  << setw(8) << static_cast<uint32_t>(machine_code) << " "
                  << sl.original_text << "\n";

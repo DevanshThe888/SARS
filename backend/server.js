@@ -7,33 +7,45 @@ const path = require('path');
 const app = express();
 const PORT = 3001;
 
-// Directory where asm.exe and emu.exe live
+// Directory where assembler.exe / emulator.exe live
 const BIN_DIR = __dirname;
 
-const TEMP_ASM = path.join(BIN_DIR, 'temp.asm');
-const TEMP_OBJ = path.join(BIN_DIR, 'temp.o');
-const TEMP_LST = path.join(BIN_DIR, 'temp.lst');
+const TEMP_ASM   = path.join(BIN_DIR, 'temp.asm');
+const TEMP_OBJ   = path.join(BIN_DIR, 'temp.o');
+const TEMP_LST   = path.join(BIN_DIR, 'temp.lst');
 const TEMP_TRACE = path.join(BIN_DIR, 'temp.trace.json');
-const isWindows = process.platform === 'win32';
-const ASM_EXE = path.join(BIN_DIR, isWindows ? 'asm.exe' : 'asm');
-const EMU_EXE = path.join(BIN_DIR, isWindows ? 'emu.exe' : 'emu');
+const isWindows  = process.platform === 'win32';
+const ASM_EXE    = path.join(BIN_DIR, isWindows ? 'assembler.exe' : 'assembler');
+const EMU_EXE    = path.join(BIN_DIR, isWindows ? 'emulator.exe'  : 'emulator');
 
-// Auto-compile C++ binaries if missing (Fixes Replit deployment ENOENT errors)
-if (!isWindows) {
+// Auto-compile C++ binaries at startup if they are missing
+{
   const { execSync } = require('child_process');
   try {
     if (!fs.existsSync(ASM_EXE)) {
-      console.log('Compiling assembler...');
-      execSync('g++ assembler.cpp -o asm', { cwd: BIN_DIR, stdio: 'inherit' });
+      console.log('Compiling assembler.cpp  →  ' + path.basename(ASM_EXE) + ' ...');
+      if (isWindows) {
+        execSync('g++ assembler.cpp -o assembler.exe -static-libgcc -static-libstdc++ -static', { cwd: BIN_DIR, stdio: 'inherit' });
+      } else {
+        execSync('g++ assembler.cpp -o assembler -static-libgcc -static-libstdc++',             { cwd: BIN_DIR, stdio: 'inherit' });
+      }
+      console.log('assembler compiled successfully.');
     }
     if (!fs.existsSync(EMU_EXE)) {
-      console.log('Compiling emulator...');
-      execSync('g++ emulator.cpp -o emu', { cwd: BIN_DIR, stdio: 'inherit' });
+      console.log('Compiling emulator.cpp  →  ' + path.basename(EMU_EXE) + ' ...');
+      if (isWindows) {
+        execSync('g++ emulator.cpp -o emulator.exe -static-libgcc -static-libstdc++ -static', { cwd: BIN_DIR, stdio: 'inherit' });
+      } else {
+        execSync('g++ emulator.cpp -o emulator -static-libgcc -static-libstdc++',             { cwd: BIN_DIR, stdio: 'inherit' });
+      }
+      console.log('emulator compiled successfully.');
     }
-    // Also grant execution permissions just in case
-    execSync('chmod +x asm emu', { cwd: BIN_DIR });
+    if (!isWindows) {
+      execSync('chmod +x assembler emulator', { cwd: BIN_DIR });
+    }
   } catch (err) {
-    console.error('Failed to compile C++ binaries:', err.message);
+    console.error('\n⚠  Failed to compile C++ binaries:', err.message);
+    console.error('   Make sure g++ is installed and on your PATH (e.g. via MSYS2/MinGW or WSL).\n');
   }
 }
 
@@ -63,14 +75,23 @@ app.post('/run', async (req, res) => {
   cleanup();
 
   // Step 1: Write assembly to temp file
+  console.log('\n─── /run ────────────────────────────────────');
+  console.log('[1] Writing temp.asm ...');
   try {
     fs.writeFileSync(TEMP_ASM, code, 'utf8');
+    console.log('    temp.asm written (' + code.length + ' bytes)');
   } catch (e) {
+    console.error('    FAILED:', e.message);
     return res.status(500).json({ error: `Failed to write temp file: ${e.message}` });
   }
 
-  // Step 2: Run assembler
-  const asmResult = await runExe(ASM_EXE, ['temp.asm', 'temp.o', 'temp.lst'], BIN_DIR);
+  // Step 2: Run assembler  (use ABSOLUTE paths so there is zero ambiguity)
+  console.log('[2] Running assembler:', ASM_EXE);
+  const asmResult = await runExe(ASM_EXE, [TEMP_ASM, TEMP_OBJ, TEMP_LST], BIN_DIR);
+  console.log('    stdout:', asmResult.stdout.trim() || '(empty)');
+  console.log('    stderr:', asmResult.stderr.trim() || '(empty)');
+  console.log('    err:   ', asmResult.err ? asmResult.err.message : 'null');
+  console.log('    temp.o exists:', fs.existsSync(TEMP_OBJ));
 
   if (asmResult.stderr.trim()) {
     cleanup();
@@ -95,24 +116,42 @@ app.post('/run', async (req, res) => {
   let listing = '';
   try {
     listing = fs.readFileSync(TEMP_LST, 'utf8');
+    console.log('[3] temp.lst read (' + listing.length + ' chars)');
   } catch (_) {
     listing = '(listing file not generated)';
+    console.warn('[3] temp.lst not found');
   }
 
-  // Step 4: Run emulator
-  const emuResult = await runExe(EMU_EXE, ['temp.o', 'temp.trace.json'], BIN_DIR);
+  // Step 4: Run emulator  (use ABSOLUTE paths)
+  console.log('[4] Running emulator:', EMU_EXE);
+  const emuResult = await runExe(EMU_EXE, [TEMP_OBJ, TEMP_TRACE], BIN_DIR);
+  console.log('    stdout:', emuResult.stdout.trim() || '(empty)');
+  console.log('    stderr:', emuResult.stderr.trim() || '(empty)');
+  console.log('    err:   ', emuResult.err ? emuResult.err.message : 'null');
+  console.log('    temp.trace.json exists:', fs.existsSync(TEMP_TRACE));
 
   let trace = null;
   let emuLog = emuResult.stdout.trim();
   let emuError = emuResult.stderr.trim();
 
+  // Surface emulator process errors (e.g. binary not found, timeout)
+  if (emuResult.err && !emuError) {
+    emuError = emuResult.err.message;
+  }
+
   if (fs.existsSync(TEMP_TRACE)) {
     try {
       const raw = fs.readFileSync(TEMP_TRACE, 'utf8');
       trace = JSON.parse(raw);
+      console.log('[5] Trace parsed OK —', (trace.steps || []).length, 'steps');
     } catch (e) {
       emuError += ` | Failed to parse trace: ${e.message}`;
+      console.error('[5] Trace parse error:', e.message);
     }
+  } else if (!emuError) {
+    // Emulator ran without error but produced no trace file — surface this
+    emuError = 'Emulator did not produce a trace file. Check that the object file is valid.';
+    console.error('[5] temp.trace.json missing and no emulator error reported');
   }
 
   cleanup();
@@ -125,6 +164,7 @@ app.post('/run', async (req, res) => {
     emuLog,
   });
 });
+
 
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', binDir: BIN_DIR }));

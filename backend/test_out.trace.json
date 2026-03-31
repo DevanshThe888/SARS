@@ -1,0 +1,8 @@
+{"metadata":{"memory_size":65536,"word_size":4,"entry_pc":0,"max_steps":5000, "initial_memory": [1280,2561,18]}, "steps": [
+  {"step":0,"pc":0,"instr":1280,"regs":{"A":0,"B":0,"PC":0,"SP":65535},"regWrites":[{"reg":0,"old":0,"new":5},{"reg":2,"old":0,"new":1}],"memWrites":[]},
+  {"step":1,"pc":1,"instr":2561,"regs":{"A":5,"B":0,"PC":1,"SP":65535},"regWrites":[{"reg":0,"old":5,"new":15},{"reg":2,"old":1,"new":2}],"memWrites":[]},
+  {"step":2,"pc":2,"instr":18,"regs":{"A":15,"B":0,"PC":2,"SP":65535},"regWrites":[{"reg":2,"old":2,"new":3}],"memWrites":[]}
+],
+"truncated":false,
+"total_steps":3
+}

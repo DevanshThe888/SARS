@@ -4,8 +4,10 @@
   "description": "Express bridge for SIMPLEX assembler and emulator",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "start:replit": "g++ assembler.cpp -o asm && g++ emulator.cpp -o emu && node server.js"
+    "start":          "node server.js",
+    "dev":            "node server.js",
+    "compile":        "g++ assembler.cpp -o assembler.exe -static-libgcc -static-libstdc++ -static && g++ emulator.cpp -o emulator.exe -static-libgcc -static-libstdc++ -static",
+    "start:replit":   "g++ assembler.cpp -o assembler && g++ emulator.cpp -o emulator && node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
